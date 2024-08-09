@@ -1,6 +1,5 @@
 import {v2 as cloudinary} from "cloudinary"
 import fs from "fs"
-import { fileURLToPath } from "url";
 
 cloudinary.config({ 
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
