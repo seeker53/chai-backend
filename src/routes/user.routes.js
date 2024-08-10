@@ -5,7 +5,7 @@ const userRouter = Router();
 
 userRouter.route("/register").post(
     //adding middleware - 'jaate samay milke jana'
-    upload.fields(
+    upload.fields([
         {
             name : 'avatar',
             maxCount : 1
@@ -13,7 +13,7 @@ userRouter.route("/register").post(
         {
             name : 'coverImage',
             maxCount : 1
-        }
+        }]
     ),
     registerUser)
 
