@@ -36,8 +36,12 @@ const registerUser = asyncHandler(async(req,res)=>{
     // most of the times middleware adds fields in req object
     // files fields actually has many properties such as png, jpeg, size, etc.
     // first property of this files.avatar field if present can provide us with the path of image uploaded by multer in diskStorage
+    console.log(req.files)
     const avatarLocalPath = req.files?.avatar[0]?.path;
-    const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    let coverImageLocalPath;
+    if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length>0){
+        coverImageLocalPath = req.files.coverImage[0].path
+    }
     if(!avatarLocalPath){
         throw new ApiError(400,"Avatar is required");
     }
@@ -68,7 +72,7 @@ const registerUser = asyncHandler(async(req,res)=>{
     // remove password and refresh token field from response
 
     // verify if user has been created using mongodb '_id' field
-    // weird syntax of .select("-password -refreshToken") wherein we are removing password and refresh token fields from response
+    // weird syntax of mongoose .select("-password -refreshToken") wherein we are removing password and refresh token fields from response
     const createdUser = await User.findById(user._id).select("-password -refreshToken");
     
     
