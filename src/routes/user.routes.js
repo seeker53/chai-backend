@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { registerUser, loginUser, logoutUser } from "../controllers/user.controller.js";
+import { registerUser, loginUser, logoutUser, refreshAccessToken } from "../controllers/user.controller.js";
 import {upload} from "../middlewares/multer.middleware.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 const userRouter = Router();
@@ -26,4 +26,7 @@ userRouter.route("/login").post(loginUser)
 // so we have to tell them apart using next()
 // verifyJWT-> next() -> logoutUser
 userRouter.route("/logout").post(verifyJWT,logoutUser);
+
+userRouter.route("/refresh-token").post(refreshAccessToken);
+
 export default userRouter;
