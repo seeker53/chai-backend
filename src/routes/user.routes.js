@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { registerUser } from "../controllers/user.controller.js";
+import { registerUser, loginUser, logoutUser } from "../controllers/user.controller.js";
 import {upload} from "../middlewares/multer.middleware.js"
+import { verifyJWT } from "../middlewares/auth.middleware.js";
 const userRouter = Router();
 
 userRouter.route("/register").post(
@@ -17,4 +18,12 @@ userRouter.route("/register").post(
     ),
     registerUser)
 
+userRouter.route("/login").post(loginUser)
+
+//secured routes
+
+// next() usecase of middlewares can be seen here below where we are using two methods verifyJWT and logoutUser
+// so we have to tell them apart using next()
+// verifyJWT-> next() -> logoutUser
+userRouter.route("/logout").post(verifyJWT,logoutUser);
 export default userRouter;

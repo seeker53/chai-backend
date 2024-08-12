@@ -4,6 +4,23 @@ import { User } from "../models/user.model.js";
 import {uploadOnCloudinary} from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
+const generateAcessAndRefreshToken = async (userId)=>{
+    try{
+        const user = await User.findById(userId);
+        const accessToken = await user.generateAccessToken();
+        const refreshToken = await user.generateRefreshToken();
+        // updating or adding refresh token in mongodb
+        user.refreshToken = refreshToken;
+        // using save method of mongodb with no validation to avoid errors 
+        // that would arise due to absence of required fields such as password, avatr, etc.
+        await user.save({validateBeforeSave:false});
+        return {accessToken,refreshToken};
+    }
+    catch(err){
+        throw new ApiError(500,"Something went wrong while generating access and refresh token");
+    }
+}
+
 const registerUser = asyncHandler(async(req,res)=>{
     // user register karne ke steps:
     
@@ -39,6 +56,7 @@ const registerUser = asyncHandler(async(req,res)=>{
     console.log(req.files)
     const avatarLocalPath = req.files?.avatar[0]?.path;
     let coverImageLocalPath;
+    // handling it with classical if conditions because optional check gives 'cannot read properties of undefined' error in case of missing coverImage
     if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length>0){
         coverImageLocalPath = req.files.coverImage[0].path
     }
@@ -91,4 +109,91 @@ const registerUser = asyncHandler(async(req,res)=>{
     )
 })
 
-export {registerUser}
+const loginUser = asyncHandler(async(req,res)=>{
+    // login karne ke steps:
+
+    // get user details from frontend or req.body se data
+    const {email,username,password} = req.body
+
+    // check if all details are there and valid
+    if(!email && !username){
+        throw new ApiError(400,"Email or username is required")
+    }
+
+    // check if user exists
+    const user = await User.findOne({
+        //using $or (or) logical query operator in mongodb
+        $or : [
+            {username},
+            {email}
+        ]
+    })
+    if(!user){
+        throw new ApiError(404,"User not found");
+    }
+
+    // password validating
+    // remeber using 'user' and not 'User'
+    const isPasswordCorrect = await user.isPasswordCorrect(password);
+    if(!isPasswordCorrect){
+        throw new ApiError(401,"Incorrect password");
+    }
+
+    // generate tokens
+    const {accessToken,refreshToken} = await generateAccessTokenAndRefreshToken(user._id);
+    
+    // fetching logged in user details
+    // option 1 : remove sensitive fields like password and refreshToken directly from the existing user variable
+    // option 2 :loggedInUser is a filtered version of 'user' designed to ensure that sensitive information is not exposed to the client.    
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+
+    // send cookie
+    return res
+    .status(200)
+    .cookie("accessToken",accessToken,options)
+    .cookie("refreshToken",refreshToken,options)
+    .json(
+        new ApiResponse(
+            200,
+            {
+                user:loggedInUser,accessToken,refreshToken // data field of ApiResponse util
+            },
+            "User Logged in successfully"
+        )
+    )
+});
+
+const logoutUser = asyncHandler(async(req,res)=>{
+    // logout karne ke steps:
+    // due to verifyJWT middleware, req.user is available in the request now
+
+    // remove refreshToken from db
+    await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: {
+                refreshToken : undefined // deleting refereshToken
+            }
+        },
+        {
+            new : true // update the res to have new value, that is to get value with deleted refreshToken
+        }
+    )
+    
+    // remove cookies
+
+    const options = {
+        httpOnly : true,
+        secure : true
+    }
+
+    return res
+    .status(200)
+    .clearCookie("accessToken",options)
+    .clearCookie("refreshToken",options)
+    .json(
+        new ApiResponse(200,{},"User logged out")
+    )
+})
+
+export {registerUser, loginUser}
