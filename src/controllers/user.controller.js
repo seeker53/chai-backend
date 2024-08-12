@@ -4,7 +4,7 @@ import { User } from "../models/user.model.js";
 import {uploadOnCloudinary} from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
-const generateAcessAndRefreshToken = async (userId)=>{
+const generateAccessAndRefreshToken = async (userId)=>{
     try{
         const user = await User.findById(userId);
         const accessToken = await user.generateAccessToken();
@@ -140,7 +140,7 @@ const loginUser = asyncHandler(async(req,res)=>{
     }
 
     // generate tokens
-    const {accessToken,refreshToken} = await generateAccessTokenAndRefreshToken(user._id);
+    const {accessToken,refreshToken} = await generateAccessAndRefreshToken(user._id);
     
     // fetching logged in user details
     // option 1 : remove sensitive fields like password and refreshToken directly from the existing user variable
@@ -148,6 +148,10 @@ const loginUser = asyncHandler(async(req,res)=>{
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
     // send cookie
+    const options = {
+        httpOnly : true,
+        secure : true
+    }
     return res
     .status(200)
     .cookie("accessToken",accessToken,options)
