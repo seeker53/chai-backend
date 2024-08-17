@@ -322,7 +322,7 @@ const updateUserAvatar = asyncHandler(async(req,res)=>{
     const user = await User.findById(req.user?._id);
     const previousAvatarUrl = user?.avatar;
     const previousAvatarPublicId = getPublicIdFromUrl(previousAvatarUrl);
-    console.log('Previous Avatar Public ID:', previousAvatarPublicId);
+    // console.log('Previous Avatar Public ID:', previousAvatarPublicId);
     const updatedUser = await User.findByIdAndUpdate(
         req.user?._id,
         {
@@ -358,7 +358,11 @@ const updateUserCoverImage = asyncHandler(async(req,res)=>{
         throw new ApiError(500,"Error while uploading coverImage on cloudinary")
     }
 
-    const user = await User.findByIdAndUpdate(
+    const user = await User.findById(req.user?._id);
+    const previousCoverImageUrl = user?.coverImage;
+    const previousCoverImagePublicId = getPublicIdFromUrl(previousCoverImageUrl);
+
+    const updatedUser = await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set:{
@@ -368,10 +372,14 @@ const updateUserCoverImage = asyncHandler(async(req,res)=>{
         {new:true}
     ).select("-password")
 
+    if (previousCoverImagePublicId) {
+        await deleteFromCloudinary(previousCoverImagePublicId);
+    }
+
     return res
     .status(200)
     .json(
-        new ApiResponse(200, user, "Cover Image updated successfully")
+        new ApiResponse(200, updatedUser, "Cover Image updated successfully")
     )
 })
 
