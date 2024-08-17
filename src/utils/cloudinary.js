@@ -1,5 +1,6 @@
 import {v2 as cloudinary} from "cloudinary"
 import fs from "fs"
+import { ApiError } from "./ApiError.js";
 
 cloudinary.config({ 
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
@@ -25,4 +26,25 @@ const uploadOnCloudinary = async(localFilePath)=>{
     }
 }
 
-export {uploadOnCloudinary}
+const deleteFromCloudinary = async(publicId)=>{
+    try{
+        const result = await cloudinary.api.delete_resources([publicId], {
+            type: 'upload',
+            resource_type: 'image'
+        });
+        console.log('Cloudinary Delete Result:', result);
+        return result;
+    }
+    catch(err){
+        throw new ApiError(504,`Failed to old image from cloudinary: ${error.message}`);
+    }
+}
+
+const getPublicIdFromUrl = (url) => {
+    if (!url) return '';
+    // Extract the public ID from the URL
+    const matches = url.match(/\/v\d+\/(.+)\./);
+    return matches ? matches[1] : '';
+}
+
+export {uploadOnCloudinary, deleteFromCloudinary, getPublicIdFromUrl}

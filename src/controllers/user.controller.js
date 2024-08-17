@@ -1,8 +1,9 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
-import {uploadOnCloudinary} from "../utils/cloudinary.js";
+import {uploadOnCloudinary, deleteFromCloudinary, getPublicIdFromUrl} from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import jwt from "jsonwebtoken";
 
 const generateAccessAndRefreshToken = async (userId)=>{
     try{
@@ -175,8 +176,8 @@ const logoutUser = asyncHandler(async(req,res)=>{
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshToken : undefined // deleting refereshToken
+            $unset: {
+                refreshToken : "" // deleting refereshToken
             }
         },
         {
@@ -243,6 +244,9 @@ const changeCurrentPassword = asyncHandler(async(req,res)=>{
     const {currentPassword, newPassword} = req.body;
     if(!currentPassword || !newPassword){
         throw new ApiError(400,"Old or new password field cannot be empty");
+    }
+    if(currentPassword === newPassword){
+        throw new ApiError(400,"Old and new password cannot be same");
     }
     // we will be using auth middleware before sending request to changeCurrentPassword controller 
     // so middleware will already be performing the task of token verifications etc.
@@ -315,7 +319,11 @@ const updateUserAvatar = asyncHandler(async(req,res)=>{
         throw new ApiError(500,"Error while uploading avatar on cloudinary")
     }
 
-    const user = await User.findByIdAndUpdate(
+    const user = await User.findById(req.user?._id);
+    const previousAvatarUrl = user?.avatar;
+    const previousAvatarPublicId = getPublicIdFromUrl(previousAvatarUrl);
+    console.log('Previous Avatar Public ID:', previousAvatarPublicId);
+    const updatedUser = await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set:{
@@ -323,12 +331,16 @@ const updateUserAvatar = asyncHandler(async(req,res)=>{
             }
         },
         {new:true}
-    ).select("-password")
+    ).select("-password -refreshToken")
+
+    if (previousAvatarPublicId) {
+        await deleteFromCloudinary(previousAvatarPublicId);
+    }
 
     return res
     .status(200)
     .json(
-        new ApiResponse(200, user, "Avatar updated successfully")
+        new ApiResponse(200, updatedUser, "Avatar updated successfully")
     )
 })
 
