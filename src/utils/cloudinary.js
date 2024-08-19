@@ -15,10 +15,14 @@ const uploadOnCloudinary = async(localFilePath)=>{
         const response = await cloudinary.uploader.upload(localFilePath,{
             resource_type:"auto"
         })
+        if(!response){
+            throw new ApiError(504,"Failed to upload image on cloudinary");
+        }
         //file has been uploaded successfully
         console.log('File is uploaded on cloudinary',
             response.url
         )
+        fs.unlinkSync(localFilePath);
         return response;
     } catch(error){
         fs.unlinkSync(localFilePath);
@@ -36,7 +40,7 @@ const deleteFromCloudinary = async(publicId)=>{
         return result;
     }
     catch(err){
-        throw new ApiError(504,`Failed to old image from cloudinary: ${error.message}`);
+        throw new ApiError(504,`Failed to delete old image from cloudinary: ${error.message}`);
     }
 }
 

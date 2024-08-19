@@ -488,7 +488,7 @@ const getWatchHistory = asyncHandler(async(req,res)=>{
                     },
                     {
                         // this pipeline for overwriting owner field to structure it for frontend use
-                        // the data of importance is in the first value of returned array in owner field
+                        // the relevant data is in the first value of returned array in owner field
                         $addFields:{
                             owner : {
                                 $first : "$owner"
