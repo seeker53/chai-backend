@@ -177,7 +177,7 @@ const logoutUser = asyncHandler(async(req,res)=>{
         req.user._id,
         {
             $unset: {
-                refreshToken : "" // deleting refereshToken
+                refreshToken : 1 // deleting refereshToken
             }
         },
         {
