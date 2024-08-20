@@ -391,7 +391,7 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
     const channel = await User.aggregate([
     {
         $match : {
-            usermame : username?.toLowerCase()
+            username : username?.toLowerCase()
         }
     },
     {
@@ -419,7 +419,7 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
                 $size : "$subscribedTo"
             },
             isSubscribed : {
-                $condition : {
+                $cond : {
                     if: { $in:[req.user?._id,"$subscribers.subscriber"]},
                     then: true,
                     else: false
