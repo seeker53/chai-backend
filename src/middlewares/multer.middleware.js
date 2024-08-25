@@ -4,36 +4,38 @@ import path from "path";
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-      cb(null, './public/temp')
+        cb(null, './public/temp')
     },
     filename: function (req, file, cb) {
-      cb(null, file.originalname)
+        cb(null, file.originalname)
     }
-  })
+});
 
-function checkFileType(file,cb){
-    const filetypes = /jpeg|jpg|png|gif/;
-    // JS test() can be used to iterate over multiple matches in a string of text (with capture groups).
-    // The path.extname() method returns the extension of the path, from the last occurrence of the . (period) character 
-    // to end of string in the last portion of the path. 
+function checkFileType(file, cb) {
+    let filetypes;
+    
+    // Determine which file types to allow based on the file field name
+    if (file.fieldname === 'avatar' || file.fieldname === 'coverImage' || file.fieldname === 'thumbnail') {
+        filetypes = /jpeg|jpg|png|gif/;
+    } else if (file.fieldname === 'video') {
+        filetypes = /mp4|avi|mkv/;
+    }
+
+    // Check file extension and MIME type
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    // The MIME type is a string that indicates the nature and format of a file.
-    // e.g. Text Files: text/plain
-    // e.g. Image Files: image/jpeg
     const mimetype = filetypes.test(file.mimetype);
 
-    if(mimetype && extname){
-      return cb(null,true);
+    if (mimetype && extname) {
+        return cb(null, true);
+    } else {
+        throw new ApiError(404, "File type not supported");
     }
-    else{
-      throw new ApiError(404,"File type not supported");
+}
+
+export const upload = multer({
+    storage: storage,
+    limits: { fileSize: 5000000 }, // Adjust size limit for videos if necessary
+    fileFilter: function (req, file, cb) {
+        checkFileType(file, cb);
     }
-}  
-  
-export const upload = multer({ 
-    storage : storage,
-    limits : {fileSize: 5000000},
-    fileFilter : function(req,file,cb){
-      checkFileType(file,cb);
-    }
-})
+});
